@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConciliaBank</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2335;--border:#2a3447;--text:#e5e7eb;--muted:#6b7280;--accent:#06b6d4;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--mono:'IBM Plex Mono','Courier New',monospace}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+.app{display:flex;flex-direction:column;min-height:100vh}
+header{border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;gap:12px;background:var(--surface);position:sticky;top:0;z-index:10}
+.logo{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-.5px}
+.logo span{color:var(--text);opacity:.45}
+.steps{display:flex;margin-left:auto}
+.step-item{display:flex;align-items:center;gap:6px;padding:5px 13px;font-size:11px;color:var(--muted);border:1px solid var(--border);margin-left:-1px;transition:all .2s;white-space:nowrap}
+.step-item:first-child{border-radius:6px 0 0 6px}.step-item:last-child{border-radius:0 6px 6px 0}
+.step-item.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;z-index:1}
+.step-item.done{background:var(--surface2);color:var(--success)}
+.step-num{width:16px;height:16px;border-radius:50%;background:currentColor;color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.step-item.active .step-num{background:#000;color:var(--accent)}.step-item.done .step-num{background:var(--success);color:#000}
+main{flex:1;padding:24px 30px;max-width:1300px;margin:0 auto;width:100%}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:13px;font-family:var(--mono)}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:32px 18px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(6,182,212,.05)}
+.upload-zone.loaded{border-style:solid;border-color:var(--success);background:rgba(16,185,129,.04)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.upload-icon{font-size:26px}.upload-title{font-size:14px;font-weight:600}.upload-sub{font-size:11px;color:var(--muted)}
+.badge-format{display:inline-flex;gap:4px;margin-top:7px;flex-wrap:wrap;justify-content:center}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.map-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.map-section-title{font-size:11px;font-weight:700;color:var(--accent);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;margin-bottom:11px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.field-label{font-size:11px;color:var(--muted);width:110px;flex-shrink:0;font-family:var(--mono)}
+.field-label span{color:var(--danger)}
+.field-label .hint{font-size:9px;display:block;color:rgba(107,114,128,.7);margin-top:1px}
+select,input[type=text]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;width:100%;outline:none;font-family:inherit}
+select:focus,input:focus{border-color:var(--accent)}
+.btn{padding:8px 18px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#000}.btn-primary:hover{filter:brightness(1.1)}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:var(--surface2)}
+.btn-success{background:var(--success);color:#000}.btn-success:hover{filter:brightness(1.08)}
+.btn-unmatch{background:transparent;color:var(--muted);border:1px solid var(--border);padding:3px 8px;font-size:10px;border-radius:5px}
+.btn-unmatch:hover{background:var(--surface2);color:var(--danger)}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 16px}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-family:var(--mono);margin-bottom:4px}
+.stat-value{font-size:24px;font-weight:700;font-family:var(--mono);line-height:1}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.c-success{color:var(--success)}.c-warning{color:var(--warning)}.c-danger{color:var(--danger)}.c-accent{color:var(--accent)}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.progress-fill{height:100%;border-radius:2px;transition:width .4s;background:linear-gradient(90deg,var(--success),var(--accent))}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid rgba(42,52,71,.4);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.mono{font-family:var(--mono)}
+.amount-pos{color:var(--success);font-family:var(--mono)}
+.amount-neg{color:var(--danger);font-family:var(--mono)}
+.amount-neu{font-family:var(--mono)}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;font-size:12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.tab:hover:not(.active){color:var(--text)}
+.tab-badge{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:10px;background:var(--surface2);margin-left:5px}
+.tab.active .tab-badge{background:rgba(6,182,212,.2);color:var(--accent)}
+.tab-badge.red{background:rgba(239,68,68,.15);color:var(--danger)}
+.selectable{cursor:pointer;transition:background .1s}
+.selectable.selected td{background:rgba(6,182,212,.1)!important}
+.selectable.selected td:first-child{border-left:2px solid var(--accent)}
+.match-hint{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.22);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--accent);margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.pair-section{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.pair-label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:6px}
+/* COMP BADGE — replicates their color system */
+.comp-badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;white-space:nowrap;letter-spacing:.3px}
+.comp-ref{background:rgba(16,185,129,.18);color:#10b981;border:1px solid rgba(16,185,129,.3)}   /* green - ref match */
+.comp-amt{background:rgba(245,158,11,.18);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}   /* yellow - amount */
+.comp-blu{background:rgba(173,216,230,.25);color:#7dd3fc;border:1px solid rgba(125,211,252,.3)} /* blue - special */
+.comp-man{background:rgba(6,182,212,.18);color:#06b6d4;border:1px solid rgba(6,182,212,.3)}     /* cyan - manual */
+.comp-fuz{background:rgba(156,163,175,.18);color:#9ca3af;border:1px solid rgba(156,163,175,.3)} /* gray - fuzzy */
+/* Status pill */
+.status-comp{background:rgba(16,185,129,.12);color:var(--success);font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-weight:700}
+.status-pend{background:rgba(239,68,68,.12);color:var(--danger);font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-weight:700}
+/* Row color coding matching Excel */
+.row-green td{background:rgba(16,185,129,.05)!important}
+.row-yellow td{background:rgba(245,158,11,.05)!important}
+.row-blue td{background:rgba(173,216,230,.06)!important}
+.row-lime td{background:rgba(146,208,80,.05)!important}
+.alert{padding:8px 13px;border-radius:7px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.alert-info{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);color:var(--accent)}
+.alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--success)}
+.alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--warning)}
+.report-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.report-title{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--accent)}
+.report-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);margin-bottom:14px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.hidden{display:none!important}
+.flex{display:flex}.gap-2{gap:8px}.ml-auto{margin-left:auto}.mt-4{margin-top:14px}
+.text-center{text-align:center}.text-muted{color:var(--muted)}
+.tag{display:inline-block;font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:3px;background:var(--surface2);border:1px solid var(--border)}
+.tag-sap{border-color:rgba(6,182,212,.4);color:var(--accent);background:rgba(6,182,212,.08)}
+.tag-bank{border-color:rgba(245,158,11,.4);color:var(--warning);background:rgba(245,158,11,.08)}
+.divider-row td{border-bottom:none;padding:3px 0;font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.7px;background:var(--surface2)!important}
+.sheet-picker{margin-top:9px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px}
+.sheet-picker-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px}
+.sheet-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sheet-chip{padding:4px 11px;border-radius:5px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;display:flex;align-items:center;gap:5px}
+.sheet-chip:hover{border-color:var(--accent);color:var(--accent)}
+.sheet-chip.active{background:rgba(6,182,212,.15);border-color:var(--accent);color:var(--accent);font-weight:700}
+.sheet-chip.detected{border-color:var(--success);color:var(--success)}
+.sheet-chip.detected.active{background:rgba(16,185,129,.15)}
+.sheet-det-badge{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,.2);color:var(--success)}
+footer{border-top:1px solid var(--border);padding:9px 26px;display:flex;justify-content:space-between;align-items:center;background:var(--surface);font-size:11px;color:var(--muted)}
+@media(max-width:768px){.upload-grid,.map-grid,.pair-section,.stats-grid{grid-template-columns:1fr}.steps{display:none}main{padding:14px}}
+@media print{body{background:#fff;color:#000}header,footer,.no-print{display:none}.card{border:1px solid #ccc;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">Concilia<span>Bank</span></div>
+  <div style="font-size:11px;color:var(--muted)">Fertilizantes de Centroamérica · BAC Honduras</div>
+  <div class="steps" id="stepsBar">
+    <div class="step-item active"><div class="step-num">1</div> Carga</div>
+    <div class="step-item"><div class="step-num">2</div> Columnas</div>
+    <div class="step-item"><div class="step-num">3</div> Matching</div>
+    <div class="step-item"><div class="step-num">4</div> Revisión</div>
+    <div class="step-item"><div class="step-num">5</div> Reporte</div>
+  </div>
+</header>
+<main>
+
+<!-- RECOVERY BANNER -->
+<div id="recoveryBanner" class="hidden" style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);border-radius:9px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="font-size:22px">💾</div>
+  <div style="flex:1;min-width:200px">
+    <div style="font-size:13px;font-weight:700;color:var(--accent)">Sesión guardada encontrada</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px" id="recoveryInfo"></div>
+  </div>
+  <button class="btn btn-primary" style="padding:7px 16px;font-size:12px" onclick="restoreSession()">↩ Restaurar sesión</button>
+  <button class="btn btn-ghost" style="padding:7px 14px;font-size:12px" onclick="discardSession()">Descartar</button>
+</div>
+
+<!-- ══ STEP 1 ══ -->
+<div id="step1">
+  <div class="card">
+    <div class="card-title">📂 Cargar archivos</div>
+    <div class="upload-grid">
+      <div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px"><span class="tag tag-sap">SAP B1</span> &nbsp;Auxiliar / Libro Mayor</div>
+        <div class="upload-zone" id="sapZone">
+          <input type="file" id="sapFile" accept=".csv,.xlsx,.xls,.xlsm,.txt">
+          <div class="upload-icon">📊</div>
+          <div class="upload-title" id="sapFileName">Seleccionar archivo SAP B1</div>
+          <div class="upload-sub">Arrastra o haz clic</div>
+          <div class="badge-format"><span class="badge">XLSX</span><span class="badge">XLSM</span><span class="badge">CSV</span></div>
+        </div>
+        <div class="hidden" id="sapSheetPickerWrap">
+          <div class="sheet-picker">
+            <div class="sheet-picker-label">📋 Hojas detectadas — selecciona la hoja SAP</div>
+            <div class="sheet-chips" id="sapSheetChips"></div>
+          </div>
+        </div>
+        <div class="hidden mt-4" id="sapPreviewWrap">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:3px">Vista previa</div>
+          <div class="table-wrap" id="sapPreview"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px"><span class="tag tag-bank">BANCO</span> &nbsp;Estado de Cuenta BAC</div>
+        <div class="upload-zone" id="bankZone">
+          <input type="file" id="bankFile" accept=".csv,.txt,.xlsx,.xlsm,.sta,.mt940,.940">
+          <div class="upload-icon">🏦</div>
+          <div class="upload-title" id="bankFileName">Seleccionar estado de cuenta</div>
+          <div class="upload-sub">Arrastra o haz clic</div>
+          <div class="badge-format"><span class="badge">XLSX</span><span class="badge">CSV</span><span class="badge">MT940</span></div>
+        </div>
+        <div class="hidden" id="bankFormatWrap" style="margin-top:9px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="bankFormatSel" style="width:auto;font-size:12px">
+              <option value="csv">CSV / TXT delimitado</option>
+              <option value="xlsx">Excel (XLSX/XLSM)</option>
+              <option value="mt940">MT940 (SWIFT)</option>
+            </select>
+            <span id="bankDetected" style="font-size:10px;color:var(--success)"></span>
+          </div>
+        </div>
+        <div class="hidden" id="bankSheetPickerWrap" style="margin-top:9px">
+          <div class="sheet-picker">
+            <div class="sheet-picker-label">📋 Hojas detectadas — selecciona la hoja Banco</div>
+            <div class="sheet-chips" id="bankSheetChips"></div>
+          </div>
+        </div>
+        <div class="hidden mt-4" id="bankPreviewWrap">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:3px">Vista previa</div>
+          <div class="table-wrap" id="bankPreview"></div>
+        </div>
+      </div>
+    </div>
+    <div class="flex mt-4" style="justify-content:flex-end">
+      <button class="btn btn-primary" id="btnStep1Next" disabled onclick="goToStep(2)">Continuar → Mapear columnas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STEP 2 ══ -->
+<div id="step2" class="hidden">
+  <div class="card">
+    <div class="card-title">🗂 Mapeo de columnas</div>
+    <div class="alert alert-info"><span>ℹ</span> El campo <b>Referencia de cruce</b> es clave: es la columna que tiene el mismo número en SAP y en el banco (ej. SAP Ref.3 = 412455430 = Referencia en estado de cuenta).</div>
+    <div class="map-grid">
+      <div>
+        <div class="map-section-title">SAP B1 — Libro Mayor</div>
+        <div class="field-row"><div class="field-label">Fecha <span>*</span></div><select id="sapColDate"></select></div>
+        <div class="field-row"><div class="field-label">Tipo monto<span>*</span></div>
+          <select id="sapColType">
+            <option value="split">Cargo (ML) / Abono (ML) — columnas separadas</option>
+            <option value="combined">Una columna con signo +/-</option>
+          </select>
+        </div>
+        <div class="field-row" id="sapDebitRow"><div class="field-label">Col. Cargo <span>*</span><span class="hint">Débito/Egreso</span></div><select id="sapColDebit"></select></div>
+        <div class="field-row" id="sapCreditRow"><div class="field-label">Col. Abono <span>*</span><span class="hint">Crédito/Ingreso</span></div><select id="sapColCredit"></select></div>
+        <div class="field-row"><div class="field-label">Ref. de cruce<span class="hint">⭐ SAP Ref.3</span></div><select id="sapColRef3"><option value="">— Ninguna —</option></select></div>
+        <div class="field-row"><div class="field-label">Nº Trans.</div><select id="sapColTrans"><option value="">— Ninguna —</option></select></div>
+        <div class="field-row"><div class="field-label">Descripción</div><select id="sapColDesc"><option value="">— Ninguna —</option></select></div>
+        <div class="field-row"><div class="field-label">Saltar filas</div>
+          <input type="text" id="sapSkip" value="0" style="width:55px">
+          <span style="font-size:10px;color:var(--muted);margin-left:5px">filas extra</span>
+        </div>
+      </div>
+      <div>
+        <div class="map-section-title">BANCO — Estado de Cuenta</div>
+        <div id="bankMapCsv">
+          <div class="field-row"><div class="field-label">Fecha <span>*</span></div><select id="bankColDate"></select></div>
+          <div class="field-row"><div class="field-label">Tipo monto<span>*</span></div>
+            <select id="bankColType">
+              <option value="split">Débitos / Créditos — columnas separadas</option>
+              <option value="combined">Una columna con signo</option>
+            </select>
+          </div>
+          <div class="field-row" id="bankDebitRow"><div class="field-label">Col. Débito <span>*</span></div><select id="bankColDebit"></select></div>
+          <div class="field-row" id="bankCreditRow"><div class="field-label">Col. Crédito <span>*</span></div><select id="bankColCredit"></select></div>
+          <div class="field-row"><div class="field-label">Ref. de cruce<span class="hint">⭐ Referencia banco</span></div><select id="bankColRef"><option value="">— Ninguna —</option></select></div>
+          <div class="field-row"><div class="field-label">Código tipo</div><select id="bankColCode"><option value="">— Ninguna —</option></select></div>
+          <div class="field-row"><div class="field-label">Descripción</div><select id="bankColDesc"><option value="">— Ninguna —</option></select></div>
+          <div class="field-row"><div class="field-label">Col. ESTADO</div><select id="bankColEstado"><option value="">— Ninguna —</option></select></div>
+        </div>
+        <div id="bankMapMt940" class="hidden">
+          <div class="alert alert-success" style="margin-top:6px"><span>✓</span> MT940 — campos automáticos.</div>
+        </div>
+      </div>
+    </div>
+    <div class="flex mt-4" style="gap:8px;justify-content:space-between">
+      <button class="btn btn-ghost" onclick="goToStep(1)">← Volver</button>
+      <button class="btn btn-primary" onclick="runMatching()">⚡ Ejecutar Matching — 4 pasadas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STEP 3 ══ -->
+<div id="step3" class="hidden">
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="card">
+    <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:5px">Tasa de automatización</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div id="progressLabel" style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:14px"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(16,185,129,.5)"></div>Verde — Match por Referencia exacta (Ref.3 = Ref.Banco)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(146,208,80,.6)"></div>Lima — Match por Ref. similar + monto</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,.5)"></div>Amarillo — Match por monto (depósitos circulación)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(173,216,230,.5)"></div>Azul — Match especial (subasta/divisas)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,.4)"></div>Rojo — Sin conciliar (PENDIENTE)</div>
+    </div>
+    <div id="matchBreakdown" style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div class="flex" style="gap:8px;justify-content:space-between">
+      <button class="btn btn-ghost" onclick="goToStep(2)">← Volver</button>
+      <button class="btn btn-primary" onclick="goToStep(4)">Revisar y ajustar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STEP 4 ══ -->
+<div id="step4" class="hidden">
+  <div id="matchHint" class="match-hint hidden">
+    <span>↔</span><span id="matchHintText">Selecciona una partida SAP y una del banco</span>
+    <button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;margin-left:auto" onclick="clearSel()">Cancelar</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(event,'matched')">Conciliados <span class="tab-badge" id="matchedCount">0</span></div>
+    <div class="tab" onclick="showTab(event,'unmatched')">Partidas Abiertas <span class="tab-badge red" id="unmatchedCount">0</span></div>
+  </div>
+  <div id="tabMatched">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID Comp.</th><th>Tipo</th><th>Fecha SAP</th><th>Ref.3 SAP</th><th>Descripción SAP</th><th>Monto SAP</th><th style="color:var(--muted)">↔</th><th>Fecha Banco</th><th>Ref. Banco</th><th>Descripción Banco</th><th>Monto Banco</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="matchedBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="tabUnmatched" class="hidden">
+    <div class="pair-section">
+      <div>
+        <div class="pair-label">📊 SAP B1 — sin conciliar <span id="sapUnCnt" style="color:var(--danger)"></span></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Nº Trans.</th><th>Ref.3</th><th>Descripción</th><th>Cargo</th><th>Abono</th></tr></thead><tbody id="sapUnmatchedBody"></tbody></table></div>
+      </div>
+      <div>
+        <div class="pair-label">🏦 Banco — sin conciliar <span id="bankUnCnt" style="color:var(--danger)"></span></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ref. Banco</th><th>Código</th><th>Descripción</th><th>Débito</th><th>Crédito</th></tr></thead><tbody id="bankUnmatchedBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+  <div class="flex mt-4" style="gap:8px;justify-content:space-between">
+    <button class="btn btn-ghost" onclick="goToStep(3)">← Volver</button>
+    <button class="btn btn-primary" onclick="goToStep(5)">Generar Reporte →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 5 ══ -->
+<div id="step5" class="hidden">
+  <div class="report-header no-print">
+    <div><div class="report-title">CONCILIACIÓN BANCARIA</div><div class="report-meta" id="reportMeta"></div></div>
+    <div class="report-actions no-print" style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir / PDF</button>
+    </div>
+  </div>
+  <div id="reportBody"></div>
+  <div class="flex mt-4 no-print" style="gap:8px">
+    <button class="btn btn-ghost" onclick="goToStep(4)">← Volver</button>
+    <button class="btn btn-ghost" onclick="resetApp()" style="margin-left:auto">🔄 Nueva Conciliación</button>
+  </div>
+</div>
+
+</main>
+<footer>
+  <span>ConciliaBank · Todo se procesa localmente en tu navegador. Ningún dato se envía a servidores.</span>
+  <span style="display:flex;align-items:center;gap:14px">
+    <span id="persistBadge" style="font-size:10px;color:var(--muted)"></span>
+    <span id="saveIndicator" style="font-size:10px;font-family:var(--mono);opacity:.4;transition:opacity .5s"></span>
+    <span id="footerStats" style="font-family:var(--mono)"></span>
+  </span>
+</footer>
+</div>
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const S={
+  step:1, sapRaw:null, bankRaw:null,
+  sapHeaders:[], bankHeaders:[], bankFormat:'csv',
+  sapTxns:[], bankTxns:[],
+  matched:[], sapUnmatched:[], bankUnmatched:[],
+  selSap:null, selBank:null, compCounter:1,
+};
+
+// ══════════════════════════════════════
+// NAV
+// ══════════════════════════════════════
+function goToStep(n){
+  document.getElementById('step'+S.step).classList.add('hidden');
+  document.getElementById('step'+n).classList.remove('hidden');
+  document.querySelectorAll('.step-item').forEach((el,i)=>{
+    el.classList.remove('active','done');
+    if(i+1<n) el.classList.add('done');
+    else if(i+1===n) el.classList.add('active');
+  });
+  S.step=n;
+  if(n===3) renderStats();
+  if(n===4) renderReview();
+  if(n===5) renderReport();
+  window.scrollTo(0,0);
+  if(n>=2) autoSave();
+}
+
+// ══════════════════════════════════════
+// PARSERS
+// ══════════════════════════════════════
+function detectDelim(text){
+  const s=text.split('\n').slice(0,5).join('\n');
+  const c={',':0,';':0,'\t':0,'|':0};
+  for(const k in c) c[k]=(s.match(new RegExp('\\'+k,'g'))||[]).length;
+  return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];
+}
+function parseCsv(text){
+  const d=detectDelim(text);
+  return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{
+    const cells=[]; let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===d&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    cells.push(cur.trim()); return cells;
+  });
+}
+// Returns {sheetNames, sheets:{name→rows[][]}, wb}
+function parseExcelWorkbook(buf){
+  const wb=XLSX.read(buf,{type:'array',cellDates:true});
+  const sheets={};
+  wb.SheetNames.forEach(name=>{
+    const ws=wb.Sheets[name];
+    sheets[name]=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'YYYY-MM-DD'});
+  });
+  return{sheetNames:wb.SheetNames, sheets};
+}
+
+// Score a sheet's suitability for SAP or bank data
+// Returns 0-100
+function scoreSheet(rows, side){
+  if(!rows||rows.length<3) return 0;
+  // Find the header row (first non-empty row)
+  const hdrRow=rows.find(r=>r&&r.some(c=>c));
+  if(!hdrRow) return 0;
+  const hdr=hdrRow.map(h=>String(h||'').toLowerCase());
+  let score=0;
+
+  if(side==='sap'){
+    // Strong SAP indicators
+    if(hdr.some(h=>h.includes('nº trans')||h.includes('n° trans')||h.includes('ntrans'))) score+=40;
+    if(hdr.some(h=>h.includes('cargo')||h.includes('cargo (ml)'))) score+=20;
+    if(hdr.some(h=>h.includes('abono')||h.includes('abono (ml)'))) score+=20;
+    if(hdr.some(h=>h.includes('referencia 3')||h.includes('ref.3')||h.includes('ref 3'))) score+=15;
+    if(hdr.some(h=>h.includes('contabiliz'))) score+=10;
+    if(hdr.some(h=>h.includes('origen'))) score+=5;
+    if(hdr.some(h=>h.includes('saldo acumulado'))) score+=5;
+    // Sheet name hints
+  } else {
+    // Strong bank indicators
+    if(hdr.some(h=>h.includes('débit')||h.includes('debit'))) score+=25;
+    if(hdr.some(h=>h.includes('crédit')||h.includes('credit'))) score+=25;
+    if(hdr.some(h=>h.includes('balance')||h.includes('saldo'))) score+=15;
+    if(hdr.some(h=>h.includes('referencia')||h.includes('reference'))) score+=15;
+    if(hdr.some(h=>h.includes('código')||h.includes('codigo')||h.includes('code'))) score+=10;
+    if(hdr.some(h=>h.includes('descripci'))) score+=5;
+  }
+  // Data volume bonus (more rows = more likely the right sheet)
+  const dataRows=rows.filter(r=>r&&r.some(c=>c)).length;
+  if(dataRows>50) score+=5;
+  if(dataRows>200) score+=5;
+  return Math.min(100, score);
+}
+
+// Name-based hints
+function sheetNameScore(name, side){
+  const n=name.toLowerCase();
+  if(side==='sap'){
+    if(n==='sap') return 60;
+    if(n.includes('sap')||n.includes('libro')||n.includes('mayor')||n.includes('auxiliar')) return 30;
+  } else {
+    if(n.includes('estado')&&n.includes('cuenta')) return 60;
+    if(n.includes('banco')||n.includes('bank')||n.includes('extracto')||n.includes('cuenta')) return 30;
+    if(n.includes('bac')||n.includes('occidente')||n.includes('atlantida')) return 25;
+  }
+  return 0;
+}
+
+function bestSheet(sheetNames, sheets, side){
+  let best=null, bestScore=-1;
+  sheetNames.forEach(name=>{
+    const sc=scoreSheet(sheets[name],side)+sheetNameScore(name,side);
+    if(sc>bestScore){bestScore=sc; best=name;}
+  });
+  return{name:best, score:bestScore};
+}
+
+function renderSheetChips(sheetNames, sheets, side, activeName, detectedName){
+  const containerId=side+'SheetChips';
+  const container=document.getElementById(containerId);
+  container.innerHTML=sheetNames.map(name=>{
+    const sc=scoreSheet(sheets[name],side)+sheetNameScore(name,side);
+    const isActive=name===activeName;
+    const isDetected=name===detectedName;
+    const rows=sheets[name].filter(r=>r&&r.some(c=>c)).length;
+    const badge=isDetected?`<span class="sheet-det-badge">✓ Auto</span>`:'';
+    return `<div class="sheet-chip${isActive?' active':''}${isDetected?' detected':''}" onclick="selectSheet('${side}','${name.replace(/'/g,"\\'")}')">
+      ${esc(name)} ${badge}
+      <span style="font-size:9px;opacity:.6">${rows}f</span>
+    </div>`;
+  }).join('');
+}
+
+// Called when user clicks a sheet chip
+function selectSheet(side, name){
+  const wb=side==='sap'?S._sapWb:S._bankWb;
+  if(!wb) return;
+  const rows=wb.sheets[name];
+  if(side==='sap'){
+    S.sapRaw=rows;
+    S.sapHeaders=rows[0]||[];
+    S._sapActiveSheet=name;
+    renderPreview(S.sapRaw,'sapPreview');
+    document.getElementById('sapPreviewWrap').classList.remove('hidden');
+    fillSelects(S.sapHeaders,['sapColDate','sapColDebit','sapColCredit','sapColRef3','sapColTrans','sapColDesc']);
+    autoDetect(S.sapHeaders,'sap');
+    renderSheetChips(wb.sheetNames, wb.sheets, 'sap', name, S._sapDetected);
+  } else {
+    S.bankRaw=rows;
+    S.bankHeaders=rows[0]||[];
+    S._bankActiveSheet=name;
+    renderPreview(S.bankRaw,'bankPreview');
+    fillSelects(S.bankHeaders,['bankColDate','bankColDebit','bankColCredit','bankColRef','bankColCode','bankColDesc','bankColEstado']);
+    autoDetect(S.bankHeaders,'bank');
+    renderSheetChips(wb.sheetNames, wb.sheets, 'bank', name, S._bankDetected);
+  }
+  checkReady();
+}
+function parseMt940(text){
+  const rows=[],lines=text.split(/\r?\n/);
+  for(let i=0;i<lines.length;i++){
+    if(!lines[i].startsWith(':61:')) continue;
+    const body=lines[i].substring(4);
+    const y='20'+body.substring(0,2),m=body.substring(2,4),d=body.substring(4,6);
+    let p=6; if(/^\d{4}[CD]/.test(body.substring(6))) p=10;
+    let dc='C';
+    if(body[p]==='R'){dc=body[p+1];p+=2;}else{dc=body[p];p+=1;}
+    let amt='',k=p; while(k<body.length&&/[\d,.]/.test(body[k])){amt+=body[k];k++;}
+    let amount=parseFloat(amt.replace(',','.'))||0;
+    if(dc==='D') amount=-amount;
+    const rest=body.substring(k);
+    const ref=(rest.substring(4,20)||'').trim().replace(/\/{2,}.*/,'');
+    let desc='';
+    if(i+1<lines.length&&lines[i+1].startsWith(':86:')){
+      desc=lines[++i].substring(4);
+      while(i+1<lines.length&&lines[i+1]&&!lines[i+1].startsWith(':')) desc+=' '+lines[++i];
+    }
+    rows.push([y+'-'+m+'-'+d,amount.toString(),ref.trim(),desc.trim()]);
+  }
+  return rows;
+}
+
+// ══════════════════════════════════════
+// FILE LOADERS
+// ══════════════════════════════════════
+document.getElementById('sapFile').onchange=async e=>loadSap(e.target.files[0]);
+document.getElementById('bankFile').onchange=async e=>loadBank(e.target.files[0]);
+['sapZone','bankZone'].forEach(id=>{
+  const z=document.getElementById(id);
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag-over')});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag-over'));
+  z.addEventListener('drop',async e=>{e.preventDefault();z.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(!f) return;if(id==='sapZone') await loadSap(f); else await loadBank(f);});
+});
+
+async function loadSap(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  document.getElementById('sapFileName').textContent=file.name;
+  document.getElementById('sapZone').classList.add('loaded');
+
+  if(ext==='xlsx'||ext==='xls'||ext==='xlsm'){
+    const wb=parseExcelWorkbook(await file.arrayBuffer());
+    S._sapWb=wb;
+    const detected=bestSheet(wb.sheetNames, wb.sheets, 'sap');
+    S._sapDetected=detected.name;
+    S._sapActiveSheet=detected.name;
+    S.sapRaw=wb.sheets[detected.name];
+
+    // Show sheet picker if >1 sheet
+    if(wb.sheetNames.length>1){
+      document.getElementById('sapSheetPickerWrap').classList.remove('hidden');
+      renderSheetChips(wb.sheetNames, wb.sheets, 'sap', detected.name, detected.name);
+    }
+  } else {
+    S._sapWb=null;
+    document.getElementById('sapSheetPickerWrap').classList.add('hidden');
+    S.sapRaw=parseCsv(await file.text());
+  }
+
+  S.sapHeaders=S.sapRaw[0]||[];
+  renderPreview(S.sapRaw,'sapPreview');
+  document.getElementById('sapPreviewWrap').classList.remove('hidden');
+  fillSelects(S.sapHeaders,['sapColDate','sapColDebit','sapColCredit','sapColRef3','sapColTrans','sapColDesc']);
+  autoDetect(S.sapHeaders,'sap');
+  checkReady();
+}
+
+async function loadBank(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  document.getElementById('bankFileName').textContent=file.name;
+  document.getElementById('bankZone').classList.add('loaded');
+  document.getElementById('bankFormatWrap').classList.remove('hidden');
+  const fmtSel=document.getElementById('bankFormatSel');
+
+  if(ext==='xlsx'||ext==='xlsm'||ext==='xls'){
+    fmtSel.value='xlsx'; S.bankFormat='xlsx';
+    const wb=parseExcelWorkbook(await file.arrayBuffer());
+    S._bankWb=wb;
+    const detected=bestSheet(wb.sheetNames, wb.sheets, 'bank');
+    S._bankDetected=detected.name;
+    S._bankActiveSheet=detected.name;
+    S.bankRaw=wb.sheets[detected.name];
+
+    if(wb.sheetNames.length>1){
+      document.getElementById('bankSheetPickerWrap').classList.remove('hidden');
+      renderSheetChips(wb.sheetNames, wb.sheets, 'bank', detected.name, detected.name);
+    }
+    showBankCsv();
+    S.bankHeaders=S.bankRaw[0]||[];
+    fillSelects(S.bankHeaders,['bankColDate','bankColDebit','bankColCredit','bankColRef','bankColCode','bankColDesc','bankColEstado']);
+    autoDetect(S.bankHeaders,'bank');
+    renderPreview(S.bankRaw,'bankPreview');
+    document.getElementById('bankPreviewWrap').classList.remove('hidden');
+  } else {
+    S._bankWb=null;
+    document.getElementById('bankSheetPickerWrap').classList.add('hidden');
+    const text=await file.text();
+    const isMt940=text.includes(':20:')&&text.includes(':61:');
+    if(isMt940){
+      fmtSel.value='mt940'; S.bankFormat='mt940';
+      document.getElementById('bankDetected').textContent='✓ Auto-detectado';
+      S.bankRaw=parseMt940(text);
+      S.bankHeaders=['Fecha','Monto','Referencia','Descripción'];
+      document.getElementById('bankMapMt940').classList.remove('hidden');
+      document.getElementById('bankMapCsv').classList.add('hidden');
+      renderPreview([S.bankHeaders,...S.bankRaw.slice(0,5)],'bankPreview');
+    } else {
+      fmtSel.value='csv'; S.bankFormat='csv';
+      S.bankRaw=parseCsv(text);
+      S.bankHeaders=S.bankRaw[0]||[];
+      showBankCsv();
+      fillSelects(S.bankHeaders,['bankColDate','bankColDebit','bankColCredit','bankColRef','bankColCode','bankColDesc','bankColEstado']);
+      autoDetect(S.bankHeaders,'bank');
+      renderPreview(S.bankRaw,'bankPreview');
+    }
+    document.getElementById('bankPreviewWrap').classList.remove('hidden');
+  }
+
+  fmtSel.onchange=function(){
+    S.bankFormat=this.value;
+    if(this.value==='mt940'){document.getElementById('bankMapMt940').classList.remove('hidden');document.getElementById('bankMapCsv').classList.add('hidden');}
+    else showBankCsv();
+  };
+  checkReady();
+}
+function showBankCsv(){document.getElementById('bankMapCsv').classList.remove('hidden');document.getElementById('bankMapMt940').classList.add('hidden');}
+function checkReady(){document.getElementById('btnStep1Next').disabled=!(S.sapRaw&&S.bankRaw);}
+
+// ══════════════════════════════════════
+// COLUMN HELPERS
+// ══════════════════════════════════════
+function fillSelects(headers,ids){
+  ids.forEach(id=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    const hasNone=!!sel.querySelector('option[value=""]');
+    sel.innerHTML='';
+    if(hasNone){const o=document.createElement('option');o.value='';o.text='— Ninguna —';sel.appendChild(o);}
+    headers.forEach((h,i)=>{const o=document.createElement('option');o.value=i;o.text='['+i+'] '+h;sel.appendChild(o);});
+  });
+}
+function findCol(headers,patterns){
+  const low=headers.map(h=>String(h).toLowerCase());
+  for(const p of patterns){const i=low.findIndex(h=>h.includes(p));if(i>=0) return i;}
+  return 0;
+}
+function autoDetect(headers,side){
+  const p=side==='sap';
+  const pfx=p?'sap':'bank';
+  document.getElementById(pfx+'ColDate').value=findCol(headers,['fecha','date','fec','posting']);
+  if(p){
+    document.getElementById('sapColDebit').value=findCol(headers,['cargo','debit','débito','egreso','charge']);
+    document.getElementById('sapColCredit').value=findCol(headers,['abono','credit','crédito','ingreso']);
+    document.getElementById('sapColRef3').value=findCol(headers,['referencia 3','ref.3','ref3','referencia3','ref 3']);
+    document.getElementById('sapColTrans').value=findCol(headers,['nº trans','ntrans','trans','asiento','folio']);
+    document.getElementById('sapColDesc').value=findCol(headers,['info','descri','glosa','detalle','memo']);
+  } else {
+    document.getElementById('bankColDebit').value=findCol(headers,['débit','debit','cargo','egreso','débito']);
+    document.getElementById('bankColCredit').value=findCol(headers,['crédit','credit','abono','ingreso','crédito']);
+    document.getElementById('bankColRef').value=findCol(headers,['referencia','ref','reference','número','numero']);
+    document.getElementById('bankColCode').value=findCol(headers,['código','code','tipo','type','cod']);
+    document.getElementById('bankColDesc').value=findCol(headers,['descri','descripcion','descripción','narrat','detail']);
+    document.getElementById('bankColEstado').value=findCol(headers,['estado','status','estado']);
+  }
+}
+function renderPreview(rows,id){
+  if(!rows||!rows.length) return;
+  const h=rows[0],data=rows.slice(1,6);
+  let html='<table><thead><tr>'+h.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>';
+  data.forEach(row=>{html+='<tr>'+h.map((_,i)=>'<td style="font-size:10px;font-family:var(--mono);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(String(row[i]||''))+'</td>').join('')+'</tr>';});
+  document.getElementById(id).innerHTML=html+'</tbody></table>';
+}
+// Split toggles
+document.getElementById('sapColType').onchange=function(){
+  const s=this.value==='split';
+  document.getElementById('sapCreditRow').classList.toggle('hidden',!s);
+};
+document.getElementById('bankColType').onchange=function(){
+  const s=this.value==='split';
+  document.getElementById('bankCreditRow').classList.toggle('hidden',!s);
+};
+
+// ══════════════════════════════════════
+// NORMALIZATION
+// ══════════════════════════════════════
+function parseDate(v){
+  if(!v) return null;
+  const s=String(v).trim();
+  let m;
+  m=s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]).getTime();
+  m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]).getTime();
+  const d=new Date(s); return isNaN(d)?null:d.getTime();
+}
+function parseAmt(v){
+  if(v===null||v===undefined||v==='') return 0;
+  const s=String(v).trim().replace(/\s/g,'');
+  const neg=s.startsWith('(')||s.startsWith('-');
+  let c=s.replace(/[()$€£Q\+\-]/g,'');
+  if(/,\d{1,2}$/.test(c)) c=c.replace(/\./g,'').replace(',','.');
+  else c=c.replace(/,/g,'');
+  return (parseFloat(c)||0)*(neg?-1:1);
+}
+function normalize(rawRows,cfg){
+  const skip=Math.max(1,(parseInt(cfg.skip)||0)+1);
+  return rawRows.slice(skip).map((row,i)=>{
+    if(!row||row.every(c=>!c)) return null;
+    const date=parseDate(row[cfg.dateCol]); if(!date) return null;
+    let amount;
+    if(cfg.type==='split'){
+      const deb=parseAmt(row[cfg.debitCol]||0);
+      const cred=parseAmt(row[cfg.creditCol]||0);
+      // In SAP: cargo=debit (positive = money out), abono=credit (positive = money in)
+      // Net amount: credit - debit (positive = inflow to bank)
+      amount=cred>0?cred:(deb>0?-deb:0);
+    } else {
+      amount=parseAmt(row[cfg.debitCol]);
+    }
+    return{
+      id:i, date, amount,
+      ref3: cfg.ref3Col!==''?String(row[cfg.ref3Col]||'').trim():'',
+      trans: cfg.transCol!==''?String(row[cfg.transCol]||'').trim():'',
+      desc: cfg.descCol!==''?String(row[cfg.descCol]||'').trim():'',
+      code: cfg.codeCol!==''?String(row[cfg.codeCol]||'').trim():'',
+      raw:row
+    };
+  }).filter(Boolean);
+}
+function normalizeMt940(rows){
+  return rows.map((row,i)=>({
+    id:i,date:parseDate(row[0]),amount:parseAmt(row[1]),
+    ref3:String(row[2]||'').trim(),desc:String(row[3]||'').trim(),
+    trans:'',code:'',raw:row
+  })).filter(t=>t.date!==null);
+}
+
+// ══════════════════════════════════════
+// MATCHING ENGINE — 4 PASSES
+// ══════════════════════════════════════
+function strSim(a,b){
+  if(!a||!b) return 0;
+  a=String(a).toLowerCase().replace(/\s+/g,''); 
+  b=String(b).toLowerCase().replace(/\s+/g,'');
+  if(a===b) return 1;
+  if(a.includes(b)||b.includes(a)) return 0.8;
+  const ta=new Set(a.split(/[^a-z0-9]+/).filter(Boolean));
+  const tb=new Set(b.split(/[^a-z0-9]+/).filter(Boolean));
+  const inter=[...ta].filter(x=>tb.has(x)).length;
+  const union=new Set([...ta,...tb]).size;
+  return union?inter/union:0;
+}
+
+function runMatching(){
+  const sapType=document.getElementById('sapColType').value;
+  S.sapTxns=normalize(S.sapRaw,{
+    dateCol:+document.getElementById('sapColDate').value,
+    type:sapType,
+    debitCol:+document.getElementById('sapColDebit').value,
+    creditCol:sapType==='split'?+document.getElementById('sapColCredit').value:0,
+    ref3Col:document.getElementById('sapColRef3').value!==''?+document.getElementById('sapColRef3').value:'',
+    transCol:document.getElementById('sapColTrans').value!==''?+document.getElementById('sapColTrans').value:'',
+    descCol:document.getElementById('sapColDesc').value!==''?+document.getElementById('sapColDesc').value:'',
+    codeCol:'', skip:document.getElementById('sapSkip').value||0,
+  });
+
+  if(S.bankFormat==='mt940'){
+    S.bankTxns=normalizeMt940(S.bankRaw);
+  } else {
+    const bkType=document.getElementById('bankColType').value;
+    S.bankTxns=normalize(S.bankRaw,{
+      dateCol:+document.getElementById('bankColDate').value,
+      type:bkType,
+      debitCol:+document.getElementById('bankColDebit').value,
+      creditCol:bkType==='split'?+document.getElementById('bankColCredit').value:0,
+      ref3Col:document.getElementById('bankColRef').value!==''?+document.getElementById('bankColRef').value:'',
+      transCol:'',
+      descCol:document.getElementById('bankColDesc').value!==''?+document.getElementById('bankColDesc').value:'',
+      codeCol:document.getElementById('bankColCode').value!==''?+document.getElementById('bankColCode').value:'',
+      skip:1,
+    });
+  }
+
+  const usedS=new Set(), usedB=new Set();
+  S.matched=[];
+  S.compCounter=1;
+  const DAY=86400000;
+
+  // PASS 1 — Referencia exacta: SAP Ref3 == Banco Referencia (tu match principal 🟢)
+  for(let si=0;si<S.sapTxns.length;si++){
+    const s=S.sapTxns[si];
+    if(!s.ref3) continue;
+    for(let bi=0;bi<S.bankTxns.length;bi++){
+      if(usedB.has(bi)) continue;
+      const b=S.bankTxns[bi];
+      if(s.ref3===b.ref3 && s.ref3!==''){
+        S.matched.push({sapIdx:si,bankIdx:bi,matchType:'ref_exact',confidence:100,compId:'Comp. '+(S.compCounter++)});
+        usedS.add(si); usedB.add(bi); break;
+      }
+    }
+  }
+
+  // PASS 2 — Referencia exacta + monto (fallback si misma ref pero monto difiere levemente) 🟢
+  for(let si=0;si<S.sapTxns.length;si++){
+    if(usedS.has(si)) continue;
+    const s=S.sapTxns[si];
+    if(!s.ref3) continue;
+    for(let bi=0;bi<S.bankTxns.length;bi++){
+      if(usedB.has(bi)) continue;
+      const b=S.bankTxns[bi];
+      if(s.ref3===b.ref3 && Math.abs(Math.abs(s.amount)-Math.abs(b.amount))<1.0){
+        S.matched.push({sapIdx:si,bankIdx:bi,matchType:'ref_amt',confidence:95,compId:'Comp. '+(S.compCounter++)});
+        usedS.add(si); usedB.add(bi); break;
+      }
+    }
+  }
+
+  // PASS 3 — Referencia similar + monto + ≤7 días 🟡 lima
+  for(let si=0;si<S.sapTxns.length;si++){
+    if(usedS.has(si)) continue;
+    const s=S.sapTxns[si];
+    let best=0,bestBi=-1;
+    for(let bi=0;bi<S.bankTxns.length;bi++){
+      if(usedB.has(bi)) continue;
+      const b=S.bankTxns[bi];
+      if(Math.abs(Math.abs(s.amount)-Math.abs(b.amount))>0.05) continue;
+      const days=Math.abs(b.date-s.date)/DAY;
+      if(days>7) continue;
+      const dateSc=Math.max(0,1-days/7);
+      const refSc=Math.max(strSim(s.ref3,b.ref3),strSim(s.desc,b.ref3),strSim(s.ref3,b.desc));
+      const score=dateSc*0.3+refSc*0.7;
+      if(score>best){best=score;bestBi=bi;}
+    }
+    if(bestBi>=0&&best>=0.3){
+      S.matched.push({sapIdx:si,bankIdx:bestBi,matchType:'ref_fuzzy',confidence:Math.round(Math.min(94,50+best*44)),compId:'Comp. '+(S.compCounter++)});
+      usedS.add(si); usedB.add(bestBi);
+    }
+  }
+
+  // PASS 4 — Monto exacto + fecha más cercana ≤10 días 🟡 amarillo (depósitos en circulación)
+  for(let si=0;si<S.sapTxns.length;si++){
+    if(usedS.has(si)) continue;
+    const s=S.sapTxns[si];
+    let minD=Infinity,bestBi=-1;
+    for(let bi=0;bi<S.bankTxns.length;bi++){
+      if(usedB.has(bi)) continue;
+      const b=S.bankTxns[bi];
+      if(Math.abs(Math.abs(s.amount)-Math.abs(b.amount))>0.05) continue;
+      const days=Math.abs(b.date-s.date)/DAY;
+      if(days<minD&&days<=10){minD=days;bestBi=bi;}
+    }
+    if(bestBi>=0){
+      S.matched.push({sapIdx:si,bankIdx:bestBi,matchType:'amount',confidence:Math.round(Math.max(20,50-minD*3)),compId:'Comp. '+(S.compCounter++)});
+      usedS.add(si); usedB.add(bestBi);
+    }
+  }
+
+  S.sapUnmatched=S.sapTxns.map((_,i)=>i).filter(i=>!usedS.has(i));
+  S.bankUnmatched=S.bankTxns.map((_,i)=>i).filter(i=>!usedB.has(i));
+  goToStep(3);
+}
+
+// ══════════════════════════════════════
+// STEP 3
+// ══════════════════════════════════════
+function renderStats(){
+  const matched=S.matched.length,unmatched=S.sapUnmatched.length+S.bankUnmatched.length;
+  const pct=S.sapTxns.length?Math.round(matched/S.sapTxns.length*100):0;
+  const p1=S.matched.filter(m=>m.matchType==='ref_exact').length;
+  const p2=S.matched.filter(m=>m.matchType==='ref_amt').length;
+  const p3=S.matched.filter(m=>m.matchType==='ref_fuzzy').length;
+  const p4=S.matched.filter(m=>m.matchType==='amount').length;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Registros SAP</div><div class="stat-value c-accent">${S.sapTxns.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Registros Banco</div><div class="stat-value c-accent">${S.bankTxns.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Conciliados</div><div class="stat-value c-success">${matched}</div><div class="stat-sub">${pct}% del SAP</div></div>
+    <div class="stat-card"><div class="stat-label">Partidas Abiertas</div><div class="stat-value ${unmatched>0?'c-warning':'c-success'}">${unmatched}</div><div class="stat-sub">${S.sapUnmatched.length} SAP · ${S.bankUnmatched.length} Banco</div></div>
+    <div class="stat-card"><div class="stat-label">Último Comp. #</div><div class="stat-value c-accent" style="font-size:18px">Comp. ${S.compCounter-1}</div></div>
+  `;
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('progressLabel').textContent=`${pct}% automatizado — ${unmatched} partidas abiertas (PENDIENTE)`;
+  document.getElementById('matchBreakdown').innerHTML=`
+    <span class="comp-badge comp-ref">🟢 Ref. Exacta · ${p1}</span>
+    <span class="comp-badge comp-ref">🟢 Ref.+Monto · ${p2}</span>
+    <span class="comp-badge comp-fuz">🟡 Ref. Aprox · ${p3}</span>
+    <span class="comp-badge comp-amt">🟡 Solo Monto · ${p4}</span>
+    <span class="comp-badge" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)">🔴 PENDIENTE · ${unmatched}</span>
+  `;
+  document.getElementById('footerStats').textContent=`${matched} pares · Comp. 1–${S.compCounter-1}`;
+}
+
+// ══════════════════════════════════════
+// STEP 4
+// ══════════════════════════════════════
+function showTab(e,tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.target.closest('.tab').classList.add('active');
+  document.getElementById('tabMatched').classList.toggle('hidden',tab!=='matched');
+  document.getElementById('tabUnmatched').classList.toggle('hidden',tab!=='unmatched');
+}
+function renderReview(){
+  updateCounts(); renderMatchedTable(); renderUnmatchedTables();
+}
+function updateCounts(){
+  document.getElementById('matchedCount').textContent=S.matched.length;
+  document.getElementById('unmatchedCount').textContent=S.sapUnmatched.length+S.bankUnmatched.length;
+  document.getElementById('sapUnCnt').textContent='('+S.sapUnmatched.length+')';
+  document.getElementById('bankUnCnt').textContent='('+S.bankUnmatched.length+')';
+}
+function matchBadge(m){
+  const types={
+    ref_exact:{cls:'comp-ref',label:'REF EXACTA'},
+    ref_amt:{cls:'comp-ref',label:'REF+MONTO'},
+    ref_fuzzy:{cls:'comp-fuz',label:'~REF'},
+    amount:{cls:'comp-amt',label:'MONTO'},
+    manual:{cls:'comp-man',label:'MANUAL'},
+  };
+  const t=types[m.matchType]||{cls:'comp-fuz',label:m.matchType};
+  return `<span class="comp-badge ${t.cls}">${t.label}</span>`;
+}
+function rowClass(m){
+  if(m.matchType==='ref_exact'||m.matchType==='ref_amt') return 'row-green';
+  if(m.matchType==='amount') return 'row-yellow';
+  if(m.matchType==='manual') return 'row-lime';
+  return '';
+}
+function fmtDate(ts){if(!ts) return '—'; return new Date(ts).toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fmtAmt(n){if(n===undefined||n===null) return '—'; const cls=n>0?'amount-pos':n<0?'amount-neg':'amount-neu'; return '<span class="'+cls+'">'+n.toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>';}
+function renderMatchedTable(){
+  const tb=document.getElementById('matchedBody');
+  if(!S.matched.length){tb.innerHTML='<tr><td colspan="13" class="text-center text-muted" style="padding:18px">Sin conciliaciones aún</td></tr>';return;}
+  tb.innerHTML=S.matched.map((m,idx)=>{
+    const s=S.sapTxns[m.sapIdx],b=S.bankTxns[m.bankIdx];
+    const rc=rowClass(m);
+    return `<tr class="${rc}">
+      <td><span class="comp-badge comp-ref" style="white-space:nowrap">${m.compId}</span></td>
+      <td>${matchBadge(m)}</td>
+      <td class="mono">${fmtDate(s.date)}</td>
+      <td class="mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.ref3)}">${esc(s.ref3||'—')}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)" title="${esc(s.desc)}">${esc(s.desc||'')}</td>
+      <td>${fmtAmt(s.amount)}</td>
+      <td style="color:var(--muted);font-size:10px;text-align:center">↔</td>
+      <td class="mono">${fmtDate(b.date)}</td>
+      <td class="mono" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.ref3)}">${esc(b.ref3||'—')}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)" title="${esc(b.desc)}">${esc(b.desc||'')}</td>
+      <td>${fmtAmt(b.amount)}</td>
+      <td><span class="status-comp">COMPENSADO</span></td>
+      <td><button class="btn btn-unmatch" onclick="unmatch(${idx})">Desligar</button></td>
+    </tr>`;
+  }).join('');
+}
+function renderUnmatchedTables(){
+  const sb=document.getElementById('sapUnmatchedBody');
+  const bb=document.getElementById('bankUnmatchedBody');
+  sb.innerHTML=S.sapUnmatched.length?S.sapUnmatched.map(idx=>{
+    const t=S.sapTxns[idx];
+    return `<tr class="selectable${S.selSap===idx?' selected':''}" onclick="selSap(${idx})">
+      <td class="mono">${fmtDate(t.date)}</td>
+      <td class="mono" style="font-size:11px">${esc(t.trans||'—')}</td>
+      <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.ref3||'—')}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)">${esc(t.desc||'')}</td>
+      <td>${t.amount<0?fmtAmt(-t.amount):'—'}</td>
+      <td>${t.amount>0?fmtAmt(t.amount):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="6" class="text-center text-muted" style="padding:13px">✓ Todas conciliadas</td></tr>';
+  bb.innerHTML=S.bankUnmatched.length?S.bankUnmatched.map(idx=>{
+    const t=S.bankTxns[idx];
+    return `<tr class="selectable${S.selBank===idx?' selected':''}" onclick="selBank(${idx})">
+      <td class="mono">${fmtDate(t.date)}</td>
+      <td class="mono" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.ref3||'—')}</td>
+      <td class="mono" style="font-size:11px">${esc(t.code||'—')}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)">${esc(t.desc||'')}</td>
+      <td>${t.amount<0?fmtAmt(-t.amount):'—'}</td>
+      <td>${t.amount>0?fmtAmt(t.amount):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="6" class="text-center text-muted" style="padding:13px">✓ Todas conciliadas</td></tr>';
+}
+function selSap(idx){S.selSap=S.selSap===idx?null:idx;updateHint();renderUnmatchedTables();}
+function selBank(idx){S.selBank=S.selBank===idx?null:idx;updateHint();renderUnmatchedTables();}
+function updateHint(){
+  const hint=document.getElementById('matchHint');
+  if(S.selSap!==null&&S.selBank!==null){
+    hint.classList.remove('hidden');
+    hint.innerHTML='<span>↔</span><span>¿Vincular manualmente con <b>Comp. '+S.compCounter+'</b>?</span>'+
+      '<button class="btn btn-success" style="padding:3px 12px;font-size:11px;margin-left:auto" onclick="confirmMatch()">✓ Conciliar</button>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px" onclick="clearSel()">Cancelar</button>';
+  } else if(S.selSap!==null||S.selBank!==null){
+    hint.classList.remove('hidden');
+    hint.innerHTML='<span>↔</span><span id="matchHintText">'+(S.selSap!==null?'SAP seleccionado → selecciona partida del banco':'Banco seleccionado → selecciona partida de SAP')+'</span>'+
+      '<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;margin-left:auto" onclick="clearSel()">Cancelar</button>';
+  } else hint.classList.add('hidden');
+}
+function confirmMatch(){
+  if(S.selSap===null||S.selBank===null) return;
+  S.matched.push({sapIdx:S.selSap,bankIdx:S.selBank,matchType:'manual',confidence:100,compId:'Comp. '+(S.compCounter++)});
+  S.sapUnmatched=S.sapUnmatched.filter(i=>i!==S.selSap);
+  S.bankUnmatched=S.bankUnmatched.filter(i=>i!==S.selBank);
+  S.selSap=null; S.selBank=null;
+  document.getElementById('matchHint').classList.add('hidden');
+  updateCounts(); renderMatchedTable(); renderUnmatchedTables();
+}
+function clearSel(){S.selSap=null;S.selBank=null;updateHint();renderUnmatchedTables();}
+function unmatch(idx){
+  const m=S.matched[idx];
+  S.sapUnmatched.push(m.sapIdx); S.bankUnmatched.push(m.bankIdx);
+  S.matched.splice(idx,1);
+  updateCounts(); renderMatchedTable(); renderUnmatchedTables();
+}
+
+// ══════════════════════════════════════
+// STEP 5 — REPORT
+// ══════════════════════════════════════
+function renderReport(){
+  const now=new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const pct=S.sapTxns.length?Math.round(S.matched.length/S.sapTxns.length*100):0;
+  document.getElementById('reportMeta').textContent=
+    'Generado: '+now+' · '+S.matched.length+' pares (Comp. 1–'+(S.compCounter-1)+') · '+(S.sapUnmatched.length+S.bankUnmatched.length)+' PENDIENTES';
+
+  const sapDeb=S.sapTxns.reduce((s,t)=>s+(t.amount<0?Math.abs(t.amount):0),0);
+  const sapCred=S.sapTxns.reduce((s,t)=>s+(t.amount>0?t.amount:0),0);
+  const bankDeb=S.bankTxns.reduce((s,t)=>s+(t.amount<0?Math.abs(t.amount):0),0);
+  const bankCred=S.bankTxns.reduce((s,t)=>s+(t.amount>0?t.amount:0),0);
+  const diffCred=bankCred-sapCred;
+  const p1=S.matched.filter(m=>m.matchType==='ref_exact').length;
+  const manual=S.matched.filter(m=>m.matchType==='manual').length;
+
+  let html=`
+  <div class="stats-grid" style="margin-bottom:16px;grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card"><div class="stat-label">Créditos SAP</div><div class="stat-value c-success" style="font-size:17px">${fmt(sapCred)}</div></div>
+    <div class="stat-card"><div class="stat-label">Créditos Banco</div><div class="stat-value c-success" style="font-size:17px">${fmt(bankCred)}</div></div>
+    <div class="stat-card"><div class="stat-label">Diferencia</div><div class="stat-value ${Math.abs(diffCred)<0.05?'c-success':'c-danger'}" style="font-size:17px">${fmt(diffCred)}</div><div class="stat-sub">${Math.abs(diffCred)<0.05?'✓ Cuadra':'⚠ Revisar'}</div></div>
+    <div class="stat-card"><div class="stat-label">% Conciliado</div><div class="stat-value c-success" style="font-size:17px">${pct}%</div><div class="stat-sub">${p1} por ref · ${manual} manuales</div></div>
+  </div>`;
+
+  // Matched table
+  html+=`<div class="card" style="margin-bottom:14px">
+    <div class="card-title">✓ Partidas Conciliadas — COMPENSADO (${S.matched.length})</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID Comp.</th><th>Tipo</th><th>Fecha SAP</th><th>Ref.3 SAP</th><th>Monto SAP</th><th>Fecha Banco</th><th>Ref. Banco</th><th>Monto Banco</th><th>Δ</th></tr></thead>
+      <tbody>${S.matched.map(m=>{
+        const s=S.sapTxns[m.sapIdx],b=S.bankTxns[m.bankIdx];
+        const d=Math.abs(s.amount)-Math.abs(b.amount);
+        const rc=rowClass(m);
+        return `<tr class="${rc}">
+          <td><span class="comp-badge comp-ref">${m.compId}</span></td>
+          <td>${matchBadge(m)}</td>
+          <td class="mono">${fmtDate(s.date)}</td>
+          <td class="mono">${esc(s.ref3||'—')}</td>
+          <td>${fmtAmt(s.amount)}</td>
+          <td class="mono">${fmtDate(b.date)}</td>
+          <td class="mono">${esc(b.ref3||'—')}</td>
+          <td>${fmtAmt(b.amount)}</td>
+          <td class="mono" style="color:${Math.abs(d)<0.05?'var(--success)':'var(--warning)'}">${Math.abs(d)<0.05?'0.00':d.toFixed(2)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div></div>`;
+
+  if(S.sapUnmatched.length) html+=pendCard('⚠ SAP — PENDIENTE',S.sapUnmatched,S.sapTxns,true);
+  if(S.bankUnmatched.length) html+=pendCard('⚠ Banco — PENDIENTE',S.bankUnmatched,S.bankTxns,false);
+
+  document.getElementById('reportBody').innerHTML=html;
+}
+
+function pendCard(title,idxs,txns,isSap){
+  const total=idxs.reduce((s,i)=>s+Math.abs(txns[i].amount),0);
+  return `<div class="card" style="margin-bottom:14px">
+    <div class="card-title" style="color:var(--warning)">${title} (${idxs.length}) · Total: <span class="mono">${fmt(total)}</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>${isSap?'Nº Trans.':'Ref. Banco'}</th><th>${isSap?'Ref.3':'Código'}</th><th>Descripción</th><th>Monto</th><th>Estado</th></tr></thead>
+      <tbody>${idxs.map(i=>{const t=txns[i];return `<tr>
+        <td class="mono">${fmtDate(t.date)}</td>
+        <td class="mono">${esc(isSap?t.trans:t.ref3)||'—'}</td>
+        <td class="mono">${esc(isSap?t.ref3:t.code)||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${esc(t.desc||'—')}</td>
+        <td>${fmtAmt(t.amount)}</td>
+        <td><span class="status-pend">PENDIENTE</span></td>
+      </tr>`;}).join('')}</tbody>
+    </table></div></div>`;
+}
+
+function fmt(n){return n.toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function exportCSV(){
+  const rows=[['ID_COMP','TIPO_MATCH','ESTADO','FECHA_SAP','TRANS_SAP','REF3_SAP','DESC_SAP','MONTO_SAP','FECHA_BANCO','REF_BANCO','DESC_BANCO','MONTO_BANCO','CONFIANZA']];
+  S.matched.forEach(m=>{
+    const s=S.sapTxns[m.sapIdx],b=S.bankTxns[m.bankIdx];
+    rows.push([m.compId,m.matchType,'COMPENSADO',fmtDate(s.date),s.trans,s.ref3,s.desc,s.amount,fmtDate(b.date),b.ref3,b.desc,b.amount,m.confidence]);
+  });
+  S.sapUnmatched.forEach(i=>{const t=S.sapTxns[i];rows.push(['','','PENDIENTE',fmtDate(t.date),t.trans,t.ref3,t.desc,t.amount,'','','','','']);});
+  S.bankUnmatched.forEach(i=>{const t=S.bankTxns[i];rows.push(['','','PENDIENTE','','','','','',fmtDate(t.date),t.ref3,t.desc,t.amount,'']);});
+  const csv=rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='conciliacion_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+function resetApp(){
+  Object.assign(S,{step:1,sapRaw:null,bankRaw:null,sapHeaders:[],bankHeaders:[],bankFormat:'csv',sapTxns:[],bankTxns:[],matched:[],sapUnmatched:[],bankUnmatched:[],selSap:null,selBank:null,compCounter:1,_sapWb:null,_bankWb:null,_sapDetected:null,_bankDetected:null,_sapActiveSheet:null,_bankActiveSheet:null});
+  ['sapZone','bankZone'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+  ['sapPreviewWrap','bankPreviewWrap','bankFormatWrap','sapSheetPickerWrap','bankSheetPickerWrap'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('sapFileName').textContent='Seleccionar archivo SAP B1';
+  document.getElementById('bankFileName').textContent='Seleccionar estado de cuenta';
+  document.getElementById('btnStep1Next').disabled=true;
+  document.getElementById('footerStats').textContent='';
+  goToStep(1);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ═══════════════════════════════════════════════
+// PERSISTENCIA — IndexedDB (primario) + localStorage (backup)
+// Mismo patrón que Mi Pisto HN
+// ═══════════════════════════════════════════════
+const DB_NAME='ConciliaBankDB', DB_VERSION=1, STORE='session';
+const LS_KEY='conciliabank_backup';
+
+function initDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+    };
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+
+async function requestPersistence(){
+  if(navigator.storage&&navigator.storage.persist){
+    const ok=await navigator.storage.persist();
+    const el=document.getElementById('persistBadge');
+    if(el){
+      el.textContent=ok?'🔒 Datos blindados':'⚠ Datos no persistentes';
+      el.style.color=ok?'var(--success)':'var(--warning)';
+      el.title=ok?'El navegador no borrará esta sesión automáticamente':'Abre la app desde la URL guardada para mejor persistencia';
+    }
+  }
+}
+
+// Serializamos solo lo que se puede reconstruir (no el workbook binario)
+function serializeState(){
+  return{
+    step: S.step,
+    sapRaw: S.sapRaw,
+    bankRaw: S.bankRaw,
+    sapHeaders: S.sapHeaders,
+    bankHeaders: S.bankHeaders,
+    bankFormat: S.bankFormat,
+    sapTxns: S.sapTxns,
+    bankTxns: S.bankTxns,
+    matched: S.matched,
+    sapUnmatched: S.sapUnmatched,
+    bankUnmatched: S.bankUnmatched,
+    compCounter: S.compCounter,
+    // Sheet names for display
+    _sapActiveSheet: S._sapActiveSheet,
+    _bankActiveSheet: S._bankActiveSheet,
+    _savedAt: new Date().toISOString(),
+  };
+}
+
+async function saveStateToDB(){
+  // Only save if there's meaningful data
+  if(!S.sapRaw&&!S.bankRaw) return;
+  const data=serializeState();
+  // 1. IndexedDB (primary)
+  try{
+    const db=await initDB();
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(data,'current');
+  }catch(e){console.warn('IDB save error:',e);}
+  // 2. localStorage (backup) — only light metadata to avoid quota
+  try{
+    const meta={step:data.step,compCounter:data.compCounter,_savedAt:data._savedAt,
+      sapRows:S.sapTxns.length,bankRows:S.bankTxns.length,matched:S.matched.length,
+      _sapActiveSheet:data._sapActiveSheet,_bankActiveSheet:data._bankActiveSheet};
+    localStorage.setItem(LS_KEY+'_meta',JSON.stringify(meta));
+    // Full backup in localStorage only if small enough (<3MB)
+    const json=JSON.stringify(data);
+    if(json.length<3000000) localStorage.setItem(LS_KEY,json);
+  }catch(e){console.warn('LS save error:',e);}
+  showSaveIndicator();
+}
+
+async function loadStateFromDB(){
+  // 1. Try IndexedDB first
+  try{
+    const db=await initDB();
+    return await new Promise((res,rej)=>{
+      const tx=db.transaction(STORE,'readonly');
+      const req=tx.objectStore(STORE).get('current');
+      req.onsuccess=()=>{
+        if(req.result){console.log('📂 Sesión cargada desde IndexedDB');res(req.result);}
+        else{
+          // 2. Fallback: localStorage
+          const backup=localStorage.getItem(LS_KEY);
+          console.log(backup?'📂 Sesión cargada desde localStorage':'ℹ️ Sin sesión guardada');
+          res(backup?JSON.parse(backup):null);
+        }
+      };
+      req.onerror=()=>{
+        const backup=localStorage.getItem(LS_KEY);
+        res(backup?JSON.parse(backup):null);
+      };
+    });
+  }catch(e){
+    const backup=localStorage.getItem(LS_KEY);
+    return backup?JSON.parse(backup):null;
+  }
+}
+
+async function clearSavedState(){
+  try{const db=await initDB();const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete('current');}catch(e){}
+  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(LS_KEY+'_meta');
+}
+
+function showSaveIndicator(){
+  const el=document.getElementById('saveIndicator');
+  if(!el) return;
+  const now=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  el.textContent='✓ Guardado '+now;
+  el.style.color='var(--success)';
+  el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='.4';},2500);
+}
+
+// Auto-save hook — call after every state-changing action
+function autoSave(){saveStateToDB();}
+
+// ═══════════════════════════════════════════════
+// SESSION RECOVERY BANNER
+// ═══════════════════════════════════════════════
+async function checkForSavedSession(){
+  const saved=await loadStateFromDB();
+  if(!saved||(!saved.sapTxns?.length&&!saved.sapRaw)) return;
+  const d=new Date(saved._savedAt);
+  const when=d.toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const banner=document.getElementById('recoveryBanner');
+  document.getElementById('recoveryInfo').textContent=
+    `Sesión del ${when} · ${saved.sapTxns?.length||0} reg. SAP · ${saved.bankTxns?.length||0} reg. Banco · `+
+    `${saved.matched?.length||0} pares conciliados`;
+  banner.classList.remove('hidden');
+  // Store for restore
+  window._savedSession=saved;
+}
+
+async function restoreSession(){
+  const saved=window._savedSession; if(!saved) return;
+  // Restore serializable state
+  Object.assign(S,{
+    sapRaw:saved.sapRaw||null, bankRaw:saved.bankRaw||null,
+    sapHeaders:saved.sapHeaders||[], bankHeaders:saved.bankHeaders||[],
+    bankFormat:saved.bankFormat||'csv',
+    sapTxns:saved.sapTxns||[], bankTxns:saved.bankTxns||[],
+    matched:saved.matched||[], sapUnmatched:saved.sapUnmatched||[],
+    bankUnmatched:saved.bankUnmatched||[], compCounter:saved.compCounter||1,
+    _sapActiveSheet:saved._sapActiveSheet||null,
+    _bankActiveSheet:saved._bankActiveSheet||null,
+  });
+  document.getElementById('recoveryBanner').classList.add('hidden');
+
+  // Restore upload zone UI if raw data exists
+  if(S.sapRaw){
+    document.getElementById('sapZone').classList.add('loaded');
+    const name=S._sapActiveSheet||'archivo restaurado';
+    document.getElementById('sapFileName').textContent=name;
+    S.sapHeaders=S.sapRaw[0]||[];
+    renderPreview(S.sapRaw,'sapPreview');
+    document.getElementById('sapPreviewWrap').classList.remove('hidden');
+    fillSelects(S.sapHeaders,['sapColDate','sapColDebit','sapColCredit','sapColRef3','sapColTrans','sapColDesc']);
+    autoDetect(S.sapHeaders,'sap');
+  }
+  if(S.bankRaw){
+    document.getElementById('bankZone').classList.add('loaded');
+    const name=S._bankActiveSheet||'archivo restaurado';
+    document.getElementById('bankFileName').textContent=name;
+    document.getElementById('bankFormatWrap').classList.remove('hidden');
+    S.bankHeaders=S.bankRaw[0]||[];
+    renderPreview(S.bankRaw,'bankPreview');
+    document.getElementById('bankPreviewWrap').classList.remove('hidden');
+    showBankCsv();
+    fillSelects(S.bankHeaders,['bankColDate','bankColDebit','bankColCredit','bankColRef','bankColCode','bankColDesc','bankColEstado']);
+    autoDetect(S.bankHeaders,'bank');
+    checkReady();
+  }
+
+  // Jump to the saved step
+  const targetStep=saved.step||1;
+  if(targetStep>=3&&S.sapTxns.length){
+    goToStep(targetStep);
+  } else if(S.sapRaw&&S.bankRaw){
+    goToStep(2);
+  }
+  showSaveIndicator();
+}
+
+async function discardSession(){
+  await clearSavedState();
+  document.getElementById('recoveryBanner').classList.add('hidden');
+  window._savedSession=null;
+}
+
+// ═══════════════════════════════════════════════
+// PATCH ACTIONS TO AUTO-SAVE
+// ═══════════════════════════════════════════════
+// Wrap key actions with autoSave
+const _origRunMatching=runMatching;
+window.runMatching=function(){_origRunMatching();autoSave();};
+
+const _origConfirmMatch=confirmMatch;
+window.confirmMatch=function(){_origConfirmMatch();autoSave();};
+
+const _origUnmatch=unmatch;
+window.unmatch=function(i){_origUnmatch(i);autoSave();};
+
+const _origResetApp=resetApp;
+window.resetApp=async function(){_origResetApp();await clearSavedState();};
+
+// beforeunload guard — same as Mi Pisto HN
+window.addEventListener('beforeunload',(e)=>{
+  if(S.sapTxns.length>0||S.matched.length>0){
+    e.preventDefault();
+    e.returnValue='Tienes una conciliación en curso. ¿Seguro que quieres salir?';
+  }
+});
+
+// ═══════════════════════════════════════════════
+// STARTUP
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',async()=>{
+  await requestPersistence();
+  await checkForSavedSession();
+});
+</script>
+</body>
+</html>
